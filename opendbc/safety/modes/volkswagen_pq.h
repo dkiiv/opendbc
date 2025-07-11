@@ -13,6 +13,10 @@
 #define MSG_MOTOR_5             0x480   // RX from ECU, for ACC main switch state
 #define MSG_ACC_GRA_ANZEIGE     0x56A   // TX by OP, ACC HUD
 #define MSG_LDW_1               0x5BE   // TX by OP, Lane line recognition and text alerts
+// ECD stuff for SNG on CC H46 ABS
+#define MSG_EPB_1               0x5C0   // TX by OP, EPB/ECD control
+#define MSG_BREMSE_8            0x1AC   // TX by OP, spoofing radar
+#define MSG_BREMSE_11           0x5B7   // TX by OP, spoofing radar
 
 static uint32_t volkswagen_pq_get_checksum(const CANPacket_t *to_push) {
   int addr = GET_ADDR(to_push);
@@ -53,10 +57,17 @@ static uint32_t volkswagen_pq_compute_checksum(const CANPacket_t *to_push) {
 static safety_config volkswagen_pq_init(uint16_t param) {
   // Transmit of GRA_Neu is allowed on bus 0 and 2 to keep compatibility with gateway and camera integration
   static const CanMsg VOLKSWAGEN_PQ_STOCK_TX_MSGS[] = {{MSG_HCA_1, 0, 5, .check_relay = true}, {MSG_LDW_1, 0, 8, .check_relay = true},
-                                                {MSG_GRA_NEU, 0, 4, .check_relay = false}, {MSG_GRA_NEU, 2, 4, .check_relay = false}};
+                                                {MSG_GRA_NEU, 0, 4, .check_relay = false}, {MSG_GRA_NEU, 2, 4, .check_relay = false},
+                                                {MSG_ACC_GRA_ANZEIGE, 0, 8, .check_relay = true}, {MSG_ACC_SYSTEM, 0, 8, .check_relay = true},
+                                                {MSG_MOTOR_2, 2, 8, .check_relay = true}, {MSG_EPB_1, 1, 8, .check_relay = false},
+                                                {MSG_EPB_1, 2, 8, .check_relay = false}, {MSG_BREMSE_8, 2, 8, .check_relay = true},
+                                                {MSG_BREMSE_11, 2, 8, .check_relay = true}};
 
   static const CanMsg VOLKSWAGEN_PQ_LONG_TX_MSGS[] =  {{MSG_HCA_1, 0, 5, .check_relay = true}, {MSG_LDW_1, 0, 8, .check_relay = true},
-                                                {MSG_ACC_SYSTEM, 0, 8, .check_relay = true}, {MSG_ACC_GRA_ANZEIGE, 0, 8, .check_relay = true}};
+                                                {MSG_ACC_SYSTEM, 0, 8, .check_relay = true}, {MSG_ACC_GRA_ANZEIGE, 0, 8, .check_relay = true},
+                                                {MSG_MOTOR_2, 2, 8, .check_relay = true}, {MSG_EPB_1, 1, 8, .check_relay = false},
+                                                {MSG_EPB_1, 2, 8, .check_relay = true}, {MSG_BREMSE_8, 2, 8, .check_relay = true},
+                                                {MSG_BREMSE_11, 2, 8, .check_relay = true}};
 
   static RxCheck volkswagen_pq_rx_checks[] = {
     {.msg = {{MSG_LENKHILFE_3, 0, 6, .max_counter = 15U, .ignore_quality_flag = true, .frequency = 100U}, { 0 }, { 0 }}},
@@ -163,6 +174,19 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
     .type = TorqueDriverLimited,
   };
 
+  const AngleSteeringLimits VW_PQ_PLA_STEERING_LIMITS = {
+    .max_angle = 11383,    // 498 deg limit
+    .angle_deg_to_can = 22.85714286,
+    .frequency = 50U,
+  };
+
+  // values for mk6 golf
+  const AngleSteeringParams VW_PQ_PLA_STEERING_PARAMS = {
+    .slip_factor = -0.000580374383851451,  // calc_slip_factor(VM)  TODO: generate value for VW. this is copy from tesla
+    .steer_ratio = 16.4,
+    .wheelbase = 2.5781,
+  };
+
   // longitudinal limits
   // acceleration in m/s2 * 1000 to avoid floating point math
   const LongitudinalLimits VOLKSWAGEN_PQ_LONG_LIMITS = {
@@ -178,24 +202,36 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
   // Signal: HCA_1.LM_Offset (absolute torque)
   // Signal: HCA_1.LM_Offsign (direction)
   if (addr == MSG_HCA_1) {
-    int desired_torque = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
-    desired_torque = desired_torque / 32;  // DBC scale from PQ network to centi-Nm
-    int sign = (GET_BYTE(to_send, 3) & 0x80U) >> 7;
-    if (sign == 1) {
-      desired_torque *= -1;
-    }
-
     uint32_t hca_status = ((GET_BYTE(to_send, 1) >> 4) & 0xFU);
-    bool steer_req = ((hca_status == 5U) || (hca_status == 7U));
+    bool angle_control = (hca_status == 10U || hca_status == 11U || hca_status == 13U || hca_status == 15U);
+    if (!angle_control) {
+      int desired_torque = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
+      desired_torque = desired_torque / 32;  // DBC scale from PQ network to centi-Nm
+      int sign = (GET_BYTE(to_send, 3) & 0x80U) >> 7;
+      if (sign == 1) {
+        desired_torque *= -1;
+      }
 
-    if (steer_torque_cmd_checks(desired_torque, steer_req, VOLKSWAGEN_PQ_STEERING_LIMITS)) {
-      tx = false;
+      bool steer_req = ((hca_status == 5U) || (hca_status == 7U));
+
+      if ((steer_torque_cmd_checks(desired_torque, steer_req, VOLKSWAGEN_PQ_STEERING_LIMITS) && !angle_control)) {
+        tx = false;
+      }
+    } else {
+      int desired_angle = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
+      int sign = (GET_BYTE(to_send, 3) & 0x80U) >> 7;
+      if (sign == 1) {
+        desired_angle *= -1;
+      }
+      if (steer_angle_cmd_checks_vm(desired_angle, steer_control_enabled, VW_PQ_PLA_STEERING_LIMITS, VW_PQ_PLA_STEERING_PARAMS)) {
+        tx = false;
+      }
     }
   }
 
   // Safety check for acceleration commands
   // To avoid floating point math, scale upward and compare to pre-scaled safety m/s2 boundaries
-  if (addr == MSG_ACC_SYSTEM) {
+  if ((addr == MSG_ACC_SYSTEM) && volkswagen_longitudinal) {
     // Signal: ACC_System.ACS_Sollbeschl (acceleration in m/s2, scale 0.005, offset -7.22)
     int desired_accel = ((((GET_BYTE(to_send, 4) & 0x7U) << 8) | GET_BYTE(to_send, 3)) * 5U) - 7220U;
 
@@ -217,10 +253,42 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
   return tx;
 }
 
+static int volkswagen_pq_fwd_hook(int bus_num, int addr) {
+  int bus_fwd = -1;
+
+  switch (bus_num) {
+    case 0:
+      if (!volkswagen_longitudinal && ((addr == MSG_MOTOR_2) || (addr == MSG_BREMSE_8) || (addr == MSG_BREMSE_11) || (addr == MSG_EPB_1) || (addr == MSG_GRA_NEU))) {
+        // openpilot takes over signals OEM-radar listens to for OEM+ SNG(ECD on CC H46 ABS)
+        bus_fwd = -1;
+      } else {
+        // Forward all traffic from the Extended CAN onward
+        bus_fwd = 2;
+      }
+      break;
+    case 2:
+      if ((addr == MSG_HCA_1) || (addr == MSG_LDW_1) || (addr == MSG_ACC_SYSTEM) || (addr == MSG_ACC_GRA_ANZEIGE)) {
+        // openpilot takes over LKAS steering control, HUD msg, and ACC signals
+        bus_fwd = -1;
+      } else {
+        // Forward all remaining traffic from Extended CAN devices to J533 gateway
+        bus_fwd = 0;
+      }
+      break;
+    default:
+      // No other buses should be in use; fallback to do-not-forward
+      bus_fwd = -1;
+      break;
+  }
+
+  return bus_fwd;
+}
+
 const safety_hooks volkswagen_pq_hooks = {
   .init = volkswagen_pq_init,
   .rx = volkswagen_pq_rx_hook,
   .tx = volkswagen_pq_tx_hook,
+  .fwd = volkswagen_pq_fwd_hook,
   .get_counter = volkswagen_pq_get_counter,
   .get_checksum = volkswagen_pq_get_checksum,
   .compute_checksum = volkswagen_pq_compute_checksum,

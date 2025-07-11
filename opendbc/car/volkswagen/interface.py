@@ -35,7 +35,7 @@ class CarInterface(CarInterfaceBase):
       # It is documented in a four-part blog series:
       #   https://blog.willemmelching.nl/carhacking/2022/01/02/vw-part1/
       # Panda ALLOW_DEBUG firmware required.
-      ret.dashcamOnly = True
+      ret.dashcamOnly = False
 
     else:
       # Set global MQB parameters
@@ -62,7 +62,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = 0.4
     if ret.flags & VolkswagenFlags.PQ:
       ret.steerActuatorDelay = 0.2
-      CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
+      ret.steerControlType = car.CarParams.SteerControlType.angle
     else:
       ret.steerActuatorDelay = 0.1
       ret.lateralTuning.pid.kpBP = [0.]

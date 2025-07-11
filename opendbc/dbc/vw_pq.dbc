@@ -1178,7 +1178,7 @@ BO_ 210 HCA_1: 5 XXX
  SG_ CHECKSUM : 0|8@1+ (1,0) [0|15] "" XXX
  SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" XXX
  SG_ HCA_Status : 12|4@1+ (1,0) [0|15] "" XXX
- SG_ LM_Offset : 16|15@1+ (0.03125,0) [0|300] "cNm" XXX
+ SG_ LM_Offset : 16|15@1+ (0.04375,0) [0|1433.55625] "Unit_DegreeOfArc" XXX
  SG_ LM_OffSign : 31|1@1+ (1,0) [0|1] "" XXX
  SG_ Vib_Freq : 32|4@1+ (4,0) [0|60] "Hz" XXX
  SG_ Vib_Amp : 36|4@1+ (0.5,0) [0|7.5] "Nm" XXX
@@ -1226,7 +1226,7 @@ BO_ 870 AWV: 8 XXX
  SG_ ANB_Zielbremsung_Freigabe : 52|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ ANB_CM_Anforderung : 53|1@1+ (1,0) [0|1] "" Vector__XXX
  SG_ ANB_Ziel_Teilbrems_Verz_Anf : 54|10@1+ (0.024,-20.016) [0|1023] "Unit_MeterPerSeconSquar" Vector__XXX
- 
+
 BO_ 1470 LDW_Status: 8 XXX
  SG_ LDW_Lernmodus_rechts : 0|2@1+ (1,0) [0|3] "" XXX
  SG_ LDW_Lernmodus_links : 2|2@1+ (1,0) [0|3] "" XXX
@@ -1245,8 +1245,8 @@ BO_ 1470 LDW_Status: 8 XXX
  SG_ LDW_Frueh_Spaet : 38|2@1+ (1,0) [0|3] "" XXX
 
 BO_ 428 Bremse_8: 8 XXX
- SG_ BR8_Checksumme : 0|8@1+ (1,0) [0|255] "" XXX
- SG_ BR8_Zaehler : 8|4@1+ (1,0) [0|15] "" XXX
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] "" XXX
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" XXX
  SG_ BR8_Sta_ACC_Anf : 12|1@1+ (1,0) [0|1] "" XXX
  SG_ BR8_Verz_EPB_akt : 13|1@1+ (1,0) [0|1] "" XXX
  SG_ BR8_Sta_Br_temp : 14|1@1+ (1,0) [0|1] "" XXX
@@ -1383,6 +1383,8 @@ BO_ 1175 Parkhilfe_01: 8 XXX
  SG_ PH_KD_Fehler : 63|1@1+ (1,0) [0|1] "" XXX
 
 BO_ 1463 Bremse_11: 8 XXX
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] "" XXX
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" XXX
  SG_ B11_HydHalten : 13|1@1+ (1,0) [0|1] "" XXX
  SG_ B11_Br_StSt_Info : 14|2@1+ (1,0) [0|3] "" XXX
  SG_ B11_OBD_Nib_VL : 16|4@1+ (1,0) [0|15] "" XXX

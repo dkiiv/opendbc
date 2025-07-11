@@ -2,7 +2,7 @@ from collections import defaultdict, namedtuple
 from dataclasses import dataclass, field
 from enum import Enum, IntFlag, StrEnum
 
-from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, structs, uds
+from opendbc.car import Bus, CarSpecs, DbcDict, PlatformConfig, Platforms, structs, uds, AngleSteeringLimits
 from opendbc.can.can_define import CANDefine
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.docs_definitions import CarFootnote, CarHarness, CarDocs, CarParts, Column, \
@@ -18,6 +18,14 @@ Button = namedtuple('Button', ['event_type', 'can_addr', 'can_msg', 'values'])
 
 
 class CarControllerParams:
+  ANGLE_LIMITS: AngleSteeringLimits = AngleSteeringLimits(
+    # limit to this angle (arbitrary)
+    495,  # deg
+    # VW PLA uses a vehicle model instead, check carcontroller.py for details
+    ([], []),
+    ([], []),
+  )
+
   STEER_STEP = 2                           # HCA_01/HCA_1 message frequency 50Hz
   ACC_CONTROL_STEP = 2                     # ACC_06/ACC_07/ACC_System frequency 50Hz
   AEB_CONTROL_STEP = 2                     # ACC_10 frequency 50Hz
@@ -109,6 +117,7 @@ class CarControllerParams:
 
 class CANBUS:
   pt = 0
+  br = 1
   cam = 2
 
 
@@ -165,7 +174,7 @@ class VolkswagenPQPlatformConfig(VolkswagenMQBPlatformConfig):
 @dataclass(frozen=True, kw_only=True)
 class VolkswagenCarSpecs(CarSpecs):
   centerToFrontRatio: float = 0.45
-  steerRatio: float = 15.6
+  steerRatio: float = 16.4
   minSteerSpeed: float = CarControllerParams.DEFAULT_MIN_STEER_SPEED
 
 
@@ -276,7 +285,7 @@ class CAR(Platforms):
   )
   VOLKSWAGEN_JETTA_MK6 = VolkswagenPQPlatformConfig(
     [VWCarDocs("Volkswagen Jetta 2015-18")],
-    VolkswagenCarSpecs(mass=1518, wheelbase=2.65, minSteerSpeed=50 * CV.KPH_TO_MS, minEnableSpeed=20 * CV.KPH_TO_MS),
+    VolkswagenCarSpecs(mass=1518, wheelbase=2.5781, minEnableSpeed=20 * CV.KPH_TO_MS),
     chassis_codes={"5K", "AJ"},
     wmis={WMI.VOLKSWAGEN_MEXICO_CAR},
   )
