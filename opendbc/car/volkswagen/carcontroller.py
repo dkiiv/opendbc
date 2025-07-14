@@ -134,9 +134,6 @@ class CarController(CarControllerBase):
     self.stopped = 0
     self.stopping = 0
 
-    self.oeACCbp = [0., 9., 13., 14.]
-    self.oeACCv  = [0., 0.,  1.,  1.]
-
   def update(self, CC, CC_SP, CS, now_nanos):
     actuators = CC.actuators
     hud_control = CC.hudControl
@@ -283,8 +280,6 @@ class CarController(CarControllerBase):
       self.stopped = self.EPB_enable and (CS.out.vEgoRaw == 0 or (self.stopping and self.stopped))
 
       if CS.acc_sys_stock["COUNTER"] != self.acc_sys_counter_last:
-        if CS.acc_sys_stock["ACS_Sta_ADR"] == 1:
-          CS.acc_sys_stock["ACS_zul_Regelabw"] = CS.acc_sys_stock["ACS_zul_Regelabw"] * np.interp(CS.out.vEgoRaw, self.oeACCbp, self.oeACCv)
         EPB_handler(CS, self, CS.acc_sys_stock["ACS_Sta_ADR"], CS.acc_sys_stock["ACS_Sollbeschl"], CS.out.vEgoRaw, self.stopping)
         can_sends.append(self.CCS.filter_ACC_System(self.packer_pt, CANBUS.pt, CS.acc_sys_stock, self.EPB_active))
         can_sends.append(self.CCS.create_epb_control(self.packer_pt, CANBUS.br, self.EPB_brake, self.EPB_enable))
