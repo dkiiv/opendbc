@@ -1,6 +1,7 @@
 import numpy as np
+import math
 from opendbc.can.packer import CANPacker
-from opendbc.car import Bus, DT_CTRL, AngleSteeringLimits, structs, rate_limit
+from opendbc.car import ACCELERATION_DUE_TO_GRAVITY, Bus, DT_CTRL, AngleSteeringLimits, structs, rate_limit
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarControllerBase, ISO_LATERAL_ACCEL
 from opendbc.car.volkswagen import mqbcan, pqcan
@@ -166,7 +167,7 @@ class CarController(CarControllerBase):
         self.PLA_driverExit_last = self.PLA_driverExit
 
       apply_angle = apply_vwpla_steer_angle_limits(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw,
-                                                             CS.out.steeringAngleDeg, lat_active,
+                                                             CS.out.steeringAngleDeg, CC.latActive,
                                                              CarControllerParams.ANGLE_LIMITS, self.VM) if self.PLA_status == 13 else self.CSsteeringAngleDegLast
 
       self.apply_angle_last = apply_angle
@@ -189,11 +190,11 @@ class CarController(CarControllerBase):
       acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive, CC.cruiseControl.override)
       stopping = actuators.longControlState == LongCtrlState.stopping
       starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-      accel = clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
+      accel = np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0
                                                                             # SMA to EMA conversion: alpha = 2 / (n + 1)    n = SMA-sample
       self.accel_diff = (0.0019 * (accel - self.accel_last)) + (1 - 0.0019) * self.accel_diff         # 1000 SMA equivalence
       self.long_jerklimit = (0.01 * (clip(abs(accel), 0.7, 2))) + (1 - 0.01) * self.long_jerklimit    # set jerk limit based on accel
-      self.long_deviation = clip(CS.out.vEgo/40, 0, 0.13) * interp(abs(accel - self.accel_diff), [0, .2, 1.], [0.0, 0.0, 0.0])
+      self.long_deviation = np.clip(CS.out.vEgo/40, 0, 0.13) * np.interp(abs(accel - self.accel_diff), [0, .2, 1.], [0.0, 0.0, 0.0])
 
       EPB_handler(CS, self, acc_control, accel, CS.out.vEgoRaw, self.stopping)
 
@@ -283,7 +284,7 @@ class CarController(CarControllerBase):
 
       if CS.acc_sys_stock["COUNTER"] != self.acc_sys_counter_last:
         if CS.acc_sys_stock["ACS_Sta_ADR"] == 1:
-          CS.acc_sys_stock["ACS_zul_Regelabw"] = CS.acc_sys_stock["ACS_zul_Regelabw"] * interp(CS.out.vEgoRaw, self.oeACCbp, self.oeACCv)
+          CS.acc_sys_stock["ACS_zul_Regelabw"] = CS.acc_sys_stock["ACS_zul_Regelabw"] * np.interp(CS.out.vEgoRaw, self.oeACCbp, self.oeACCv)
         EPB_handler(CS, self, CS.acc_sys_stock["ACS_Sta_ADR"], CS.acc_sys_stock["ACS_Sollbeschl"], CS.out.vEgoRaw, self.stopping)
         can_sends.append(self.CCS.filter_ACC_System(self.packer_pt, CANBUS.pt, CS.acc_sys_stock, self.EPB_active))
         can_sends.append(self.CCS.create_epb_control(self.packer_pt, CANBUS.br, self.EPB_brake, self.EPB_enable))
