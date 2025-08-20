@@ -53,6 +53,11 @@ def apply_vwpla_steer_angle_limits(apply_angle: float, apply_angle_last: float, 
   # prevent fault
   return float(np.clip(new_apply_angle, -limits.STEER_ANGLE_MAX, limits.STEER_ANGLE_MAX))
 
+def get_safety_CP():
+  # We use the TESLA_MODEL_Y platform for lateral limiting to match safety
+  from opendbc.car.tesla.interface import CarInterface
+  return CarInterface.get_non_essential_params("VOLKSWAGEN_JETTA_MK6")
+
 def limit_jerk(accel, prev_accel, max_jerk, dt):
   max_delta_accel = max_jerk * dt
   delta_accel = max(-max_delta_accel, min(accel - prev_accel, max_delta_accel))
@@ -133,6 +138,9 @@ class CarController(CarControllerBase):
     self.long_jerklimit = 0
     self.stopped = 0
     self.stopping = 0
+
+  # Vehicle model used for lateral limiting
+    self.VM = VehicleModel(get_safety_CP())
 
   def update(self, CC, CC_SP, CS, now_nanos):
     actuators = CC.actuators
