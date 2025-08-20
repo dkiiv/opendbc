@@ -62,7 +62,7 @@ class CarInterface(CarInterfaceBase):
     ret.steerLimitTimer = 0.4
     if ret.flags & VolkswagenFlags.PQ:
       ret.steerActuatorDelay = 0.2
-      ret.steerControlType = car.CarParams.SteerControlType.angle
+      ret.steerControlType = structs.CarParams.SteerControlType.angle
     else:
       ret.steerActuatorDelay = 0.1
       ret.lateralTuning.pid.kpBP = [0.]
