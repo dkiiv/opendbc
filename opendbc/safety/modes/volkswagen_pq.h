@@ -204,6 +204,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
   if (addr == MSG_HCA_1) {
     uint32_t hca_status = ((GET_BYTE(to_send, 1) >> 4) & 0xFU);
     bool angle_control = (hca_status == 10U || hca_status == 11U || hca_status == 13U || hca_status == 15U);
+    bool steer_control_enabled = (hca_status == 13U);
     if (!angle_control) {
       int desired_torque = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
       desired_torque = desired_torque / 32;  // DBC scale from PQ network to centi-Nm
