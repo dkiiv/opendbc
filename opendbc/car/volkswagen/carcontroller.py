@@ -54,7 +54,7 @@ def apply_vwpla_steer_angle_limits(apply_angle: float, apply_angle_last: float, 
   return float(np.clip(new_apply_angle, -limits.STEER_ANGLE_MAX, limits.STEER_ANGLE_MAX))
 
 def get_safety_CP():
-  # We use the TESLA_MODEL_Y platform for lateral limiting to match safety
+  # We use the VOLKSWAGEN_JETTA_MK6 platform for lateral limiting to match safety
   from opendbc.car.tesla.interface import CarInterface
   return CarInterface.get_non_essential_params("VOLKSWAGEN_JETTA_MK6")
 
