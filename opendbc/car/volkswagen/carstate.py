@@ -46,7 +46,7 @@ class CarState(CarStateBase):
 
   def update(self, can_parsers) -> tuple[structs.CarState, structs.CarStateSP]:
     pt_cp = can_parsers[Bus.pt]
-    br_cp = can_parsers[Bus.br]
+    br_cp = can_parsers[Bus.body]
     cam_cp = can_parsers[Bus.cam]
     ext_cp = pt_cp if self.CP.networkLocation == NetworkLocation.fwdCamera else cam_cp
 
