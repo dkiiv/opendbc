@@ -390,7 +390,7 @@ class CarState(CarStateBase):
 
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CANBUS.pt),
-      Bus.br: CANParser(DBC[CP.carFingerprint][Bus.pt], br_messages, CANBUS.br),
+      Bus.body: CANParser(DBC[CP.carFingerprint][Bus.pt], br_messages, CANBUS.body),
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], cam_messages, CANBUS.cam),
     }
 
