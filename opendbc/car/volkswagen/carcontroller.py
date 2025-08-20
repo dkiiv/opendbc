@@ -209,7 +209,7 @@ class CarController(CarControllerBase):
 
       self.accel_last = accel
       if self.CCS == pqcan:
-        can_sends.append(self.CCS.create_epb_control(self.packer_pt, CANBUS.br, self.EPB_brake, self.EPB_enable))
+        can_sends.append(self.CCS.create_epb_control(self.packer_pt, CANBUS.body, self.EPB_brake, self.EPB_enable))
       can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, CANBUS.pt, CS.acc_type, accel,
                                                           acc_control, stopping, starting, CS.esp_hold_confirmation,
                                                           self.long_deviation, self.long_jerklimit))
@@ -284,7 +284,7 @@ class CarController(CarControllerBase):
       if CS.acc_sys_stock["COUNTER"] != self.acc_sys_counter_last:
         EPB_handler(CS, self, CS.acc_sys_stock["ACS_Sta_ADR"], CS.acc_sys_stock["ACS_Sollbeschl"], CS.out.vEgoRaw, self.stopping)
         can_sends.append(self.CCS.filter_ACC_System(self.packer_pt, CANBUS.pt, CS.acc_sys_stock, self.EPB_active))
-        can_sends.append(self.CCS.create_epb_control(self.packer_pt, CANBUS.br, self.EPB_brake, self.EPB_enable))
+        can_sends.append(self.CCS.create_epb_control(self.packer_pt, CANBUS.body, self.EPB_brake, self.EPB_enable))
         can_sends.append(self.CCS.filter_epb1(self.packer_pt, CANBUS.cam, self.stopped))  # in custom module, filter the gateway fwd EPB msg
       if CS.acc_anz_stock["COUNTER"] != self.acc_anz_counter_last:
         can_sends.append(self.CCS.filter_ACC_Anzeige(self.packer_pt, CANBUS.pt, CS.acc_anz_stock, self.ACC_anz_blind))
