@@ -223,10 +223,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
       if (sign == 1) {
         desired_angle *= -1;
       }
-
-      bool steer_req = (hca_status == 10U || hca_status == 11U || hca_status == 13U);
-
-      if (steer_angle_cmd_checks_vm(desired_angle, steer_req, VW_PQ_PLA_STEERING_LIMITS, VW_PQ_PLA_STEERING_PARAMS)) {
+      if (steer_angle_cmd_checks_vm(desired_angle, angle_control, VW_PQ_PLA_STEERING_LIMITS, VW_PQ_PLA_STEERING_PARAMS)) {
         tx = false;
       }
     }
