@@ -183,7 +183,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
   // values for mk6 golf
   const AngleSteeringParams VW_PQ_PLA_STEERING_PARAMS = {
     .slip_factor = -0.000580374383851451,  // calc_slip_factor(VM)  TODO: generate value for VW. this is copy from tesla
-    .steer_ratio = 16.4,
+    .steer_ratio = 18.8,
     .wheelbase = 2.5781,
   };
 
@@ -214,14 +214,14 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
 
       bool steer_req = ((hca_status == 5U) || (hca_status == 7U));
 
-      if ((steer_torque_cmd_checks(desired_torque, steer_req, VOLKSWAGEN_PQ_STEERING_LIMITS) && !angle_control)) {
+      if (steer_torque_cmd_checks(desired_torque, steer_req, VOLKSWAGEN_PQ_STEERING_LIMITS)) {
         tx = false;
       }
     } else {
       int desired_angle = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
       int sign = (GET_BYTE(to_send, 3) & 0x80U) >> 7;
       if (sign == 1) {
-        desired_angle *= -1;
+        desired_angle = -desired_angle;
       }
 
       bool steer_req = ((hca_status == 10U) || (hca_status == 11U) || (hca_status == 13U));
@@ -245,10 +245,10 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
 
   // FORCE CANCEL: ensuring that only the cancel button press is sent when controls are off.
   // This avoids unintended engagements while still allowing resume spam
+  // BUGFIX TODO: fix "controls_allowed" while at standstill with OP engaged..
   if ((addr == MSG_GRA_NEU) && !controls_allowed) {
     // Signal: GRA_Neu.GRA_Neu_Setzen
-    // Signal: GRA_Neu.GRA_Neu_Recall
-    if (GET_BIT(to_send, 16U) || GET_BIT(to_send, 17U)) {
+    if (GET_BIT(to_send, 16U)) {
       tx = false;
     }
   }

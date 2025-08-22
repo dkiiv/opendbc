@@ -123,7 +123,6 @@ class CarController(CarControllerBase):
     self.PLA_entryCounter = 0
     self.PLA_driverExit = False
     self.PLA_driverExit_last = False
-    self.CSsteeringAngleDegLast = 0
     self.CSLH3_SignLast = 0
     self.accel_last = 0
     self.frame = 0
@@ -173,10 +172,9 @@ class CarController(CarControllerBase):
 
       apply_angle = apply_vwpla_steer_angle_limits(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgoRaw,
                                                              CS.out.steeringAngleDeg, CC.latActive,
-                                                             CarControllerParams.ANGLE_LIMITS, self.VM) if self.PLA_status == 13 else self.CSsteeringAngleDegLast
+                                                             CarControllerParams.ANGLE_LIMITS, self.VM) if self.PLA_status == 13 else CS.out.steeringAngleDeg
 
       self.apply_angle_last = apply_angle
-      self.CSsteeringAngleDegLast = CS.out.steeringAngleDeg
       can_sends.append(self.CCS.create_steering_control(self.packer_pt, CANBUS.pt, apply_angle, self.PLA_status, self.CSLH3_SignLast))
       self.CSLH3_SignLast = CS.LH_3_Sign
 
