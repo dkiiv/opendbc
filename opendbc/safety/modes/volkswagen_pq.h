@@ -174,6 +174,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
     .type = TorqueDriverLimited,
   };
 
+/*
   const AngleSteeringLimits VW_PQ_PLA_STEERING_LIMITS = {
     .max_angle = 11383,    // 498 deg limit
     .angle_deg_to_can = 22.85714286,
@@ -186,6 +187,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
     .steer_ratio = 18.8,
     .wheelbase = 2.5781,
   };
+*/
 
   // longitudinal limits
   // acceleration in m/s2 * 1000 to avoid floating point math
