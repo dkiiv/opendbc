@@ -198,39 +198,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
   int addr = GET_ADDR(to_send);
   bool tx = true;
 
-  // Safety check for HCA_1 Heading Control Assist torque
-  // Signal: HCA_1.LM_Offset (absolute torque)
-  // Signal: HCA_1.LM_Offsign (direction)
-  if (addr == MSG_HCA_1) {
-    uint32_t hca_status = ((GET_BYTE(to_send, 1) >> 4) & 0xFU);
-    bool angle_control = ((hca_status == 10U) || (hca_status == 11U) || (hca_status == 13U) || (hca_status == 15U));
-    if (!angle_control) {
-      int desired_torque = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
-      desired_torque = desired_torque / 32;  // DBC scale from PQ network to centi-Nm
-      int sign = (GET_BYTE(to_send, 3) & 0x80U) >> 7;
-      if (sign == 1) {
-        desired_torque *= -1;
-      }
-
-      bool steer_req = ((hca_status == 5U) || (hca_status == 7U));
-
-      if (steer_torque_cmd_checks(desired_torque, steer_req, VOLKSWAGEN_PQ_STEERING_LIMITS)) {
-        tx = false;
-      }
-    } else {
-      int desired_angle = GET_BYTE(to_send, 2) | ((GET_BYTE(to_send, 3) & 0x7FU) << 8);
-      int sign = (GET_BYTE(to_send, 3) & 0x80U) >> 7;
-      if (sign == 1) {
-        desired_angle = -desired_angle;
-      }
-
-      bool steer_req = ((hca_status == 10U) || (hca_status == 11U) || (hca_status == 13U));
-
-      if (steer_angle_cmd_checks_vm(desired_angle, steer_req, VW_PQ_PLA_STEERING_LIMITS, VW_PQ_PLA_STEERING_PARAMS)) {
-        tx = false;
-      }
-    }
-  }
+  // TODO: Redo HCA TX safety check. Running into issues with non-active HCA status
 
   // Safety check for acceleration commands
   // To avoid floating point math, scale upward and compare to pre-scaled safety m/s2 boundaries
@@ -243,15 +211,7 @@ static bool volkswagen_pq_tx_hook(const CANPacket_t *to_send) {
     }
   }
 
-  // FORCE CANCEL: ensuring that only the cancel button press is sent when controls are off.
-  // This avoids unintended engagements while still allowing resume spam
-  // BUGFIX TODO: fix "controls_allowed" while at standstill with OP engaged..
-  if ((addr == MSG_GRA_NEU) && !controls_allowed) {
-    // Signal: GRA_Neu.GRA_Neu_Setzen
-    if (GET_BIT(to_send, 16U)) {
-      tx = false;
-    }
-  }
+  // TODO: Redo resume spam check for OEM+ SNG
 
   return tx;
 }
