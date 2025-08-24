@@ -250,7 +250,8 @@ class CarState(CarStateBase):
     self.LH2_steeringState = pt_cp.vl["Lenkhilfe_2"]["LH2_aktLenkeingriff"]
     self.LH2_Abbr = pt_cp.vl["Lenkhilfe_2"]["LH2_PLA_Abbr"]
 
-    self.MOB_Standby = br_cp.vl["Motor_Bremse"]["MOB_Standby"]
+    # self.MOB_Standby = br_cp.vl["Motor_Bremse"]["MOB_Standby"]
+    self.MOB_Standby = pt_cp.vl["EPB_1"]["EP1_Freigabe_Ver"]  #TODO: update this variable name if this works
 
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_stalk(300, pt_cp.vl["Gate_Komf_1"]["GK1_Blinker_li"],
@@ -357,6 +358,7 @@ class CarState(CarStateBase):
       ("Motor_5", 50),      # From J623 Engine control module
       ("Lenkhilfe_2", 20),  # From J500 Steering Assist with integrated sensors
       ("Gate_Komf_1", 10),  # From J533 CAN gateway
+      ("EPB_1", 0),         # FWD from J533, TX from OP on powertrain
     ]
 
     if CP.transmissionType == TransmissionType.automatic:
