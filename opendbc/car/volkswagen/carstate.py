@@ -21,6 +21,7 @@ class CarState(CarStateBase):
     self.eps_stock_values = False
     self.LH_3_Sign = False
     self.aEgoBremse = 0
+    self._last_enabled = False
 
   def update_button_enable(self, buttonEvents: list[structs.CarState.ButtonEvent]):
     if not self.CP.pcmCruise:
@@ -230,7 +231,20 @@ class CarState(CarStateBase):
     # Update ACC radar status.
     self.acc_type = ext_cp.vl["ACC_System"]["ACS_Typ_ACC"]
     ret.cruiseState.available = bool(pt_cp.vl["Motor_5"]["GRA_Hauptschalter"])
-    ret.cruiseState.enabled = pt_cp.vl["Motor_2"]["GRA_Status"] in (1, 2) or bool(pt_cp.vl["Bremse_8"]["BR8_Verz_EPB_akt"])
+
+    gra_status = pt_cp.vl["Motor_2"]["GRA_Status"] in (1, 2)
+    br8_verz = bool(pt_cp.vl["Bremse_8"]["BR8_Verz_EPB_akt"])
+    enabled_now = gra_status or br8_verz
+
+    # latch cruise enabled state
+    if enabled_now:
+      self._last_enabled = True
+    elif not gra_status and not br8_verz:
+      self._last_enabled = False
+
+    ret.cruiseState.enabled = self._last_enabled
+
+
     if self.CP.pcmCruise:
       ret.accFaulted = ext_cp.vl["ACC_GRA_Anzeige"]["ACA_StaACC"] in (6, 7)
     else:
@@ -250,8 +264,7 @@ class CarState(CarStateBase):
     self.LH2_steeringState = pt_cp.vl["Lenkhilfe_2"]["LH2_aktLenkeingriff"]
     self.LH2_Abbr = pt_cp.vl["Lenkhilfe_2"]["LH2_PLA_Abbr"]
 
-    # self.MOB_Standby = br_cp.vl["Motor_Bremse"]["MOB_Standby"]
-    self.MOB_Standby = pt_cp.vl["EPB_1"]["EP1_Freigabe_Ver"]  #TODO: update this variable name if this works
+    self.MOB_Standby = br_cp.vl["Motor_Bremse"]["MOB_Standby"]
 
     # Update button states for turn signals and ACC controls, capture all ACC button state/config for passthrough
     ret.leftBlinker, ret.rightBlinker = self.update_blinker_from_stalk(300, pt_cp.vl["Gate_Komf_1"]["GK1_Blinker_li"],
@@ -358,7 +371,6 @@ class CarState(CarStateBase):
       ("Motor_5", 50),      # From J623 Engine control module
       ("Lenkhilfe_2", 20),  # From J500 Steering Assist with integrated sensors
       ("Gate_Komf_1", 10),  # From J533 CAN gateway
-      ("EPB_1", 0),         # FWD from J533, TX from OP on powertrain
     ]
 
     if CP.transmissionType == TransmissionType.automatic:
