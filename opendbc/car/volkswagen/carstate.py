@@ -21,7 +21,6 @@ class CarState(CarStateBase):
     self.eps_stock_values = False
     self.LH_3_Sign = False
     self.aEgoBremse = 0
-    self._last_enabled = False
 
   def update_button_enable(self, buttonEvents: list[structs.CarState.ButtonEvent]):
     if not self.CP.pcmCruise:
@@ -231,19 +230,7 @@ class CarState(CarStateBase):
     # Update ACC radar status.
     self.acc_type = ext_cp.vl["ACC_System"]["ACS_Typ_ACC"]
     ret.cruiseState.available = bool(pt_cp.vl["Motor_5"]["GRA_Hauptschalter"])
-
-    gra_status = pt_cp.vl["Motor_2"]["GRA_Status"] in (1, 2)
-    br8_verz = bool(pt_cp.vl["Bremse_8"]["BR8_Verz_EPB_akt"])
-    enabled_now = gra_status or br8_verz
-
-    # latch cruise enabled state
-    if enabled_now:
-      self._last_enabled = True
-    elif not gra_status and not br8_verz:
-      self._last_enabled = False
-
-    ret.cruiseState.enabled = self._last_enabled
-
+    ret.cruiseState.enabled = ext_cp.vl["ACC_System"]["ACS_Sta_ADR"] == 1
 
     if self.CP.pcmCruise:
       ret.accFaulted = ext_cp.vl["ACC_GRA_Anzeige"]["ACA_StaACC"] in (6, 7)
