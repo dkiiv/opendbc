@@ -101,15 +101,18 @@ class CarState(CarStateBase):
 
     autopark_state = self.can_define.dv["DI_state"]["DI_autoparkState"].get(int(cp_party.vl["DI_state"]["DI_autoparkState"]), None)
     cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL")
-    self.c_frame = (self.c_frame + 1) * int(eac_status in ("EAC_ACTIVE", "EMERGENCY_LANE_KEEP"))
+    self.c_frame = (self.c_frame + 1) * (eac_status in ("EAC_ACTIVE", "EMERGENCY_LANE_KEEP") and \
+                                          self.cruise_enabled_prev == cruise_enabled)  # reset c_frame on rising/falling edge of cruise (button press)
     self.update_autopark_state(autopark_state, cruise_enabled)
 
     # Match panda safety cruise engaged logic
     ret.cruiseState.enabled = cruise_enabled and not self.autopark
     if speed_units == "KPH":
-      ret.cruiseState.speed = max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.KPH_TO_MS, 1e-3)
+      ret.cruiseState.speed = self.cruise_state_speed(max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.KPH_TO_MS, 1e-3), \
+                                                      max(cp_party.vl["DI_speed"]["DI_vehicleSpeed"] * CV.KPH_TO_MS, 1e-3))
     elif speed_units == "MPH":
-      ret.cruiseState.speed = max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.MPH_TO_MS, 1e-3)
+      ret.cruiseState.speed = self.cruise_state_speed(max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.MPH_TO_MS, 1e-3), \
+                                                      max(cp_party.vl["DI_speed"]["DI_vehicleSpeed"] * CV.KPH_TO_MS, 1e-3))
     ret.cruiseState.available = cruise_state == "STANDBY" or ret.cruiseState.enabled
     ret.cruiseState.standstill = False  # This needs to be false, since we can resume from stop without sending anything special
     ret.standstill = cruise_state == "STANDSTILL"
@@ -166,6 +169,15 @@ class CarState(CarStateBase):
       min_level = 1
 
     return self.hands_on_level >= min_level
+
+  def cruise_state_speed(self, cruise_speed, vego):
+    # pull max ACC speed up by 2mph for the first 0.5s of engagement when within 1mph of max speed
+    # prevents longitudenal jerk with OP long
+    if self.CP.openpilotLongitudinalControl and \
+      self.c_frame <= 50 and (cruise_speed - vego) <= 0.5:
+      return cruise_speed + 2
+    else:
+      return cruise_speed
 
   @staticmethod
   def get_can_parsers(CP, CP_SP):
