@@ -98,7 +98,8 @@ class CarState(CarStateBase):
                                   (eac_status == "EAC_INHIBITED" and eac_error_code == "EAC_ERROR_HIGH_ANGLE_RATE_SAFETY")
 
     autopark_state = self.can_define.dv["DI_state"]["DI_autoparkState"].get(int(cp_party.vl["DI_state"]["DI_autoparkState"]), None)
-    cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL")
+    cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL") and \
+                      not cp_ap_party.vl["DAS_control"]["DAS_accState"] == 13  # DAS request to cancel cruise
     self.c_frame = (self.c_frame + 1) * int(cruise_enabled)
     self.update_autopark_state(autopark_state, cruise_enabled)
 
