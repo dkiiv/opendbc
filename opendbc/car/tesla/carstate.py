@@ -103,8 +103,7 @@ class CarState(CarStateBase):
     self.update_autopark_state(autopark_state, cruise_enabled)
 
     # Match panda safety cruise engaged logic
-    ret.cruiseState.enabled = cruise_enabled and \
-                    not (self.autopark or cp_ap_party.vl["DAS_control"]["DAS_accState"] == 13)
+    ret.cruiseState.enabled = cruise_enabled and not self.autopark
     if speed_units == "KPH":
       ret.cruiseState.speed = max(cp_party.vl["DI_state"]["DI_digitalSpeed"] * CV.KPH_TO_MS, 1e-3)
     elif speed_units == "MPH":
