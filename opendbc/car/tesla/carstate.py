@@ -21,6 +21,7 @@ class CarState(CarStateBase):
     self.c_frame = 0
     self.blinkers = 0
     self.das_control = None
+    self.das_accCancel = False
     self.road_noise = False
     self._steer_torque_hist = []
 
@@ -91,6 +92,7 @@ class CarState(CarStateBase):
     # Cruise state
     cruise_state = self.can_define.dv["DI_state"]["DI_cruiseState"].get(int(cp_party.vl["DI_state"]["DI_cruiseState"]), None)
     speed_units = self.can_define.dv["DI_state"]["DI_speedUnits"].get(int(cp_party.vl["DI_state"]["DI_speedUnits"]), None)
+    self.das_accCancel = cp_ap_party.vl["DAS_control"]["DAS_accState"] == 13  # DAS ACC cancel request, driven by driver button press
 
     # FSD disengages using union of handsOnLevel (slow overrides) and high angle rate faults (fast overrides, high speed)
     eac_error_code = self.can_define.dv["EPAS3S_sysStatus"]["EPAS3S_eacErrorCode"].get(int(epas_status["EPAS3S_eacErrorCode"]), None)
@@ -98,9 +100,8 @@ class CarState(CarStateBase):
                                   (eac_status == "EAC_INHIBITED" and eac_error_code == "EAC_ERROR_HIGH_ANGLE_RATE_SAFETY")
 
     autopark_state = self.can_define.dv["DI_state"]["DI_autoparkState"].get(int(cp_party.vl["DI_state"]["DI_autoparkState"]), None)
-    cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL") and \
-                      not cp_ap_party.vl["DAS_control"]["DAS_accState"] == 13  # DAS request to cancel cruise
-    self.c_frame = (self.c_frame + 1) * int(cruise_enabled)
+    cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL")
+    self.c_frame = (self.c_frame + 1) * int(eac_status in ("EAC_ACTIVE", "EMERGENCY_LANE_KEEP"))
     self.update_autopark_state(autopark_state, cruise_enabled)
 
     # Match panda safety cruise engaged logic
