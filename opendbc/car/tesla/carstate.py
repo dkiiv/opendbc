@@ -101,8 +101,7 @@ class CarState(CarStateBase):
 
     autopark_state = self.can_define.dv["DI_state"]["DI_autoparkState"].get(int(cp_party.vl["DI_state"]["DI_autoparkState"]), None)
     cruise_enabled = cruise_state in ("ENABLED", "STANDSTILL", "OVERRIDE", "PRE_FAULT", "PRE_CANCEL")
-    self.c_frame = (self.c_frame + 1) * (eac_status in ("EAC_ACTIVE", "EMERGENCY_LANE_KEEP") and \
-                                          self.cruise_enabled_prev == cruise_enabled)  # reset c_frame on rising/falling edge of cruise (button press)
+    self.c_frame = (self.c_frame + 1) * (eac_status in ("EAC_ACTIVE", "EMERGENCY_LANE_KEEP"))
     self.update_autopark_state(autopark_state, cruise_enabled)
 
     # Match panda safety cruise engaged logic
@@ -174,7 +173,7 @@ class CarState(CarStateBase):
     # pull max ACC speed up by 2mph for the first 0.5s of engagement when within 1mph of max speed
     # prevents longitudenal jerk with OP long
     if self.CP.openpilotLongitudinalControl and \
-      self.c_frame <= 50 and (cruise_speed - vego) <= 0.5:
+      not self.cruise_enabled_prev and (cruise_speed - vego) <= 0.5:
       return cruise_speed + 2
     else:
       return cruise_speed
