@@ -3041,6 +3041,16 @@
     ],
     "package": "All"
   },
+  "Tesla Model X (with HW4) 2024": {
+    "platform": "TESLA_MODEL_X",
+    "make": "Tesla",
+    "brand": "tesla",
+    "model": "Model X (with HW4)",
+    "year": [
+      "2024"
+    ],
+    "package": "All"
+  },
   "Toyota Alphard 2019-20": {
     "platform": "TOYOTA_ALPHARD_TSS2",
     "make": "Toyota",
