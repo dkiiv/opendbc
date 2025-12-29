@@ -23,6 +23,8 @@ class CarState(CarStateBase):
     self.das_control = None
     self.das_accCancel = False
     self.road_noise = False
+    self.gasPressed = False
+    self.speedGate = False
     self._steer_torque_hist = []
 
   def update_autopark_state(self, autopark_state: str, cruise_enabled: bool):
@@ -46,6 +48,7 @@ class CarState(CarStateBase):
 
     # Gas pedal
     ret.gasPressed = cp_party.vl["DI_systemStatus"]["DI_accelPedalPos"] > 0
+    self.gasPressed = ret.gasPressed
 
     # Brake pedal
     ret.brake = 0
@@ -173,9 +176,16 @@ class CarState(CarStateBase):
   def cruise_state_speed(self, cruise_speed, vego):
     # pull max ACC speed up by 2mph for the first 0.5s of engagement when within 1mph of max speed
     # prevents longitudenal jerk with OP long
+    if self.gasPressed and not self.cruise_enabled_prev:
+      self.speedGate = True
+    elif not self.gasPressed:
+      if self.speedGate:
+        self.c_frame = 0
+      self.speedGate = False
+
     if self.CP.openpilotLongitudinalControl and \
-      (not self.cruise_enabled_prev or self.c_frame <= 50) and (cruise_speed - vego) <= 0.5:
-      return cruise_speed + 2
+      (self.speedGate or self.c_frame <= 50) and (cruise_speed - vego) <= 0.5:
+      return vego + 2
     else:
       return cruise_speed
 
