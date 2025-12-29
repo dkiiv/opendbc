@@ -171,7 +171,7 @@ class CarState(CarStateBase):
     else:
       min_level = 1
 
-    return self.hands_on_level >= min_level
+    return 3  #self.hands_on_level >= min_level
 
   def cruise_state_speed(self, cruise_speed, vego):
     # pull max ACC speed up by 2mph for the first 0.5s of engagement when within 1mph of max speed
